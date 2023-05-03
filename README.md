@@ -231,7 +231,7 @@ ________________________________________________________________________________
 3 Train TensorflowUNet Model
 </h2>
 
- You can create and train your TensorflowUnNet model by using a configuration file .<br>
+ You can create and train your TensorflowUNet model by using a configuration file .<br>
 The follwing is a case of Nuclei dataset <br>
 <p>
 <a href="https://www.kaggle.com/competitions/data-science-bowl-2018">2018 Data Science Bowl</a><br>
