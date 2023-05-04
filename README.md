@@ -230,14 +230,7 @@ ________________________________________________________________________________
 3 Train TensorflowUNet Model
 </h2>
 
- You can create and train your TensorflowUNet model by using a configuration file .<br>
-The follwing is a case of Nuclei dataset <br>
-<p>
-<a href="https://www.kaggle.com/competitions/data-science-bowl-2018">2018 Data Science Bowl</a><br>
-Find the nuclei in divergent images to advance medical discovery
-</p> 
-Please download dataset from the following link:<br>
-<a href="https://www.kaggle.com/competitions/data-science-bowl-2018/data">data-science-bowl-2018/data</a>
+ You can create and train your TensorflowUNet model by using a configuration file.<br>
 <pre>
 [model]
 image_width    = 256
@@ -257,7 +250,17 @@ patience      = 10
 model_dir     = "./models"
 eval_dir      = "./eval"
 </pre>
-
+This setting of the configuration is a case of Nuclei dataset.<br>
+<p>
+Please see the following web site on Nuclei dataset.<br>
+<a href="https://www.kaggle.com/competitions/data-science-bowl-2018">2018 Data Science Bowl</a><br>
+Find the nuclei in divergent images to advance medical discovery
+</p> 
+Please download dataset from the following link:<br>
+<a href="https://www.kaggle.com/competitions/data-science-bowl-2018/data">data-science-bowl-2018/data</a>
+<br>
+We have also created <a href="./NucleiDataset.py">NucleiDataset</a> class to create <b>train</b> dataset from the 
+the download file. The implementation of the class is based on the tutorial code in Kaggle web site.<br>  
 You can run the following Python script <a href="./TensorflowUNetNucleiTrainer.py">TensorflowUNetNucleiTrainer.py</a>.<br>
 <pre>
 >python TensorflowUNetNucleiTrainer.py
