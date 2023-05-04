@@ -276,3 +276,42 @@ You can run the following Python script <a href="./TensorflowUNetNucleiTrainer.p
 <b>Train losses line graph</b>:<br>
 <img src="./asset/train_losses_at_epoch_64.png" width="720" height="auto"><br>
 
+
+<h2>
+4 Prediction 
+</h2>
+ We can predict nuclei in <b>test</b> dataset by using Trained TensorflowUNet Model (weight_file),
+and <b>predict.config</b> file.<br>
+<pre>
+; predict.config
+[model]
+image_width    = 256
+image_height   = 256
+image_channels = 3
+
+num_classes    = 1
+base_filters   = 16
+num_layers     = 8
+dropout_rate   = 0.05
+learning_rate  = 0.001
+
+[train]
+model_dir     = "./models"
+
+[test]  
+output_dir    = "./test_output"
+
+</pre>
+
+Please run the Python script <a href="./TensorflowUNetNucleiPrediction.py">TensorflowUNetNucleiPrediction.py</a> 
+in the following way.<br>
+<pre>
+>python TensorflowUNetNucleiPrediction.py
+</pre>
+
+<img src="./asset/predict_console_at_epoch_64.png" width="720" height="auto"><br>
+<br>
+This prediction process will create the grayscale image files with white predicted nuclei regions.<br>
+<img src="./asset/predictions_at_epoch_64.png" width="1024" height="auto"><br>
+
+
