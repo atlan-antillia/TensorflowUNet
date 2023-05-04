@@ -66,16 +66,8 @@ if __name__ == "__main__":
     resized_image    = (height, width, channels)
     dataset          = NucleiDataset(resized_image)
     x_test, y_test = dataset.create(test_datapath, has_mask=False)
-    #files = glob.glob(test_datapath)
-    #for file in files:
-    image = x_test[0] 
-    
-    print("shape {}".format(image.shape))
-    image = np.expand_dims(image, 0)
-    
-    print("shape {}".format(image.shape))
-
-    model.predict([image])
+ 
+    model.predict(x_test, expand=True)
 
   except:
     traceback.print_exc()

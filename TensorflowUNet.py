@@ -192,7 +192,7 @@ class TensorflowUNet:
     print("=== Loaded weight_file {}".format(weight_filepath))
     predictions = []
     for image in images:
-      print("=== Input image shape {}".format(image.shape))
+      #print("=== Input image shape {}".format(image.shape))
       if expand:
         image = np.expand_dims(image, 0)
       pred = self.model.predict(image)
