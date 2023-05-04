@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-# TensorflowUNetNuclei.py
+# TensorflowUNetNucleiTrainer.py
 # 2023/05/05 to-arai
 
 # This is based on the code in the following web sites:
@@ -30,21 +30,6 @@ os.environ["TF_ENABLE_GPU_GARBAGE_COLLECTION"]="false"
 import shutil
 import sys
 import traceback
-"""
-from tensorflow.keras.layers import Lambda
-from tensorflow.keras.layers import Input
-
-from tensorflow.keras.layers import Conv2D, Dropout, Conv2D, MaxPool2D
-
-from tensorflow.keras.layers import Conv2DTranspose
-from tensorflow.keras.layers import concatenate
-from tensorflow.keras.activations import elu, relu
-from tensorflow.keras import Model
-#from tensorflow.keras.losses import SparseCategoricalCrossentropy
-#from tensorflow.keras.metrics import Mean
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-"""
 
 from ConfigParser import ConfigParser
 from NucleiDataset import NucleiDataset
