@@ -48,6 +48,7 @@ os.environ["TF_ENABLE_GPU_GARBAGE_COLLECTION"]="false"
 import shutil
 import sys
 import traceback
+import numpy as np
 
 from tensorflow.keras.layers import Lambda
 from tensorflow.keras.layers import Input
@@ -180,7 +181,7 @@ class TensorflowUNet:
 
     
 
-  def predict(self, images):
+  def predict(self, images, expand=True):
     model_dir  = self.config.get(TRAIN, "model_dir")
 
     if not os.path.exists(model_dir):
@@ -189,12 +190,14 @@ class TensorflowUNet:
 
     self.model.load_weights(weight_filepath)
     print("=== Loaded weight_file {}".format(weight_filepath))
-
+    predictions = []
     for image in images:
       print("=== Input image shape {}".format(image.shape))
-      prediction = self.model.predict(image)
-      print("predicion {}".format(prediction))
-    
+      if expand:
+        image = np.expand_dims(image, 0)
+      pred = self.model.predict(image)
+      predictions.append(pred)
+    return predictions    
 
 
   def evaluate(self, x_test, y_test): 
