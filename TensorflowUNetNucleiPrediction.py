@@ -16,11 +16,6 @@
 # TensorflowUNetNucleiTester.py
 # 2023/05/05 to-arai
 
-# This is based on the code in the following web sites:
-
-# 1. Keras U-Net starter - LB 0.277
-# https://www.kaggle.com/code/keegil/keras-u-net-starter-lb-0-277/notebook
-
 
 import os
 import shutil

@@ -18,10 +18,7 @@
 # 1. Keras U-Net starter - LB 0.277
 # https://www.kaggle.com/code/keegil/keras-u-net-starter-lb-0-277/notebook
 
-# 2. U-Net Image Segmentation in Keras
-# https://androidkt.com/tensorflow-keras-unet-for-image-image-segmentation/
-
-# 3. U-Net: Convolutional Networks for Biomedical Image Segmentation
+# 2. U-Net: Convolutional Networks for Biomedical Image Segmentation
 # https://arxiv.org/pdf/1505.04597.pdf
 
 # You can customize your TensorflowUnNet model by using a configration file
