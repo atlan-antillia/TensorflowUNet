@@ -260,7 +260,6 @@ eval_dir      = "./eval"
 </pre>
 
 You can run the following Python script <a href="./TensorflowUNetNucleiTrainer.py">TensorflowUNetNucleiTrainer.py</a>.<br>
-<pre></a>.<br>
 <pre>
 >python TensorflowUNetNucleiTrainer.py
 </pre>
