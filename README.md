@@ -43,7 +43,7 @@ dropout_rate   = 0.05
 learning_rate  = 0.001
 
 </pre>
-You will pass the filename of this configuration file to TensorflowUNet constructor to create your model 
+You will pass the filename of this configuration file to <a href="./TensorflowUNet.py">TensorflowUNet</a> constructor to create your model 
 in the following way:<br>
 <pre>
   config_file = "./model.config"
@@ -237,6 +237,8 @@ The follwing is a case of Nuclei dataset <br>
 <a href="https://www.kaggle.com/competitions/data-science-bowl-2018">2018 Data Science Bowl</a><br>
 Find the nuclei in divergent images to advance medical discovery
 </p> 
+Please download dataset from the following link:<br>
+<a href="https://www.kaggle.com/competitions/data-science-bowl-2018/data">data-science-bowl-2018/data</a>
 <pre>
 [model]
 image_width    = 256
@@ -257,9 +259,17 @@ model_dir     = "./models"
 eval_dir      = "./eval"
 </pre>
 
-You can run the following Python script.<br>
+You can run the following Python script <a href="./TensorflowUNetNucleiTrainer.py">TensorflowUNetNucleiTrainer.py</a>.<br>
+<pre></a>.<br>
 <pre>
 >python TensorflowUNetNucleiTrainer.py
 </pre>
 <img src="./asset/train_console_at_epoch_64.png" width="720" height="auto"><br>
+<br>
+<b>Train accuracies line graph</b>:<br>
+<img src="./asset/train_accuracies_at_epoch_64.png" width="720" height="auto"><br>
+
+<br>
+<b>Train losses line graph</b>:<br>
+<img src="./asset/train_losses_at_epoch_64.png" width="720" height="auto"><br>
 
