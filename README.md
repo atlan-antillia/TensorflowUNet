@@ -258,7 +258,7 @@ Please see the following web site on Nuclei dataset.<br>
 Find the nuclei in divergent images to advance medical discovery
 </b>
 </p> 
-Please download dataset from the following link:<br>
+Please download Nuclei images dataset with segmentations(mask images) from the following link:<br>
 <a href="https://www.kaggle.com/competitions/data-science-bowl-2018/data">data-science-bowl-2018/data</a>
 <br>
 We have also created <a href="./NucleiDataset.py">NucleiDataset</a> class to create <b>train</b> dataset from the 
