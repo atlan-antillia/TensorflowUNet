@@ -253,8 +253,10 @@ eval_dir      = "./eval"
 This setting of the configuration is a case of Nuclei dataset.<br>
 <p>
 Please see the following web site on Nuclei dataset.<br>
+<b>
 <a href="https://www.kaggle.com/competitions/data-science-bowl-2018">2018 Data Science Bowl</a><br>
 Find the nuclei in divergent images to advance medical discovery
+</b>
 </p> 
 Please download dataset from the following link:<br>
 <a href="https://www.kaggle.com/competitions/data-science-bowl-2018/data">data-science-bowl-2018/data</a>
