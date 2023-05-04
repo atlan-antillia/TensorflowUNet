@@ -26,7 +26,7 @@ See also:
 <h2>
 2 Create TensorflowUNet Model
 </h2>
- You can customize your TensorflowUnNet model by using a configration file.<br>
+ You can customize your TensorflowUNet model by using a configration file.<br>
 
 <pre>
 ; model.config
@@ -48,7 +48,7 @@ in the following way:<br>
   config_file = "./model.config"
   model       = TensorflowUNet(config_file)
 </pre>
-You can create TensorflowUNet by running the following command.<br>
+You can create TensorflowUNet Model by running the following command.<br>
 <pre>
 >python TensorflowUNet.py
 </pre>
@@ -232,6 +232,7 @@ ________________________________________________________________________________
 
  You can create and train your TensorflowUNet model by using a configuration file.<br>
 <pre>
+; train.config
 [model]
 image_width    = 256
 image_height   = 256
@@ -260,7 +261,7 @@ Please download Nuclei images dataset with segmentations(mask images) from the f
 <a href="https://www.kaggle.com/competitions/data-science-bowl-2018/data">data-science-bowl-2018/data</a>
 <br>
 We have also created <a href="./NucleiDataset.py">NucleiDataset</a> class to create <b>train</b> dataset from the 
-the download file. The implementation of the class is based on the tutorial code in Kaggle web site.<br>  
+the downloaded file. The implementation of the class is based on the tutorial code in Kaggle web site.<br>  
 You can run the following Python script <a href="./TensorflowUNetNucleiTrainer.py">TensorflowUNetNucleiTrainer.py</a>.<br>
 <pre>
 >python TensorflowUNetNucleiTrainer.py
