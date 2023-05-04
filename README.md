@@ -236,13 +236,11 @@ ________________________________________________________________________________
 image_width    = 256
 image_height   = 256
 image_channels = 3
-
 num_classes    = 1
 base_filters   = 16
 num_layers     = 8
 dropout_rate   = 0.05
 learning_rate  = 0.001
-
 [train]
 epochs        = 100
 batch_size    = 4
@@ -288,19 +286,15 @@ and <b>predict.config</b> file.<br>
 image_width    = 256
 image_height   = 256
 image_channels = 3
-
 num_classes    = 1
 base_filters   = 16
 num_layers     = 8
 dropout_rate   = 0.05
 learning_rate  = 0.001
-
 [train]
 model_dir     = "./models"
-
 [test]  
 output_dir    = "./test_output"
-
 </pre>
 
 Please run the Python script <a href="./TensorflowUNetNucleiPrediction.py">TensorflowUNetNucleiPrediction.py</a> 
