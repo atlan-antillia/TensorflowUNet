@@ -18,10 +18,7 @@
 # 1. Keras U-Net starter - LB 0.277
 # https://www.kaggle.com/code/keegil/keras-u-net-starter-lb-0-277/notebook
 
-# 2. U-Net Image Segmentation in Keras
-# https://androidkt.com/tensorflow-keras-unet-for-image-image-segmentation/
-
-# 3. U-Net: Convolutional Networks for Biomedical Image Segmentation
+# 2. U-Net: Convolutional Networks for Biomedical Image Segmentation
 # https://arxiv.org/pdf/1505.04597.pdf
 
 # You can customize your TensorflowUnNet model by using a configration file
@@ -105,14 +102,12 @@ class TensorflowUNet:
   def create(self, num_classes, image_height, image_width, image_channels,
             base_filters = 16, num_layers = 5):
     # inputs
-
     print("Input image_height {} image_width {} image_channels {}".format(image_height, image_width, image_channels))
     inputs = Input((image_height, image_width, image_channels))
     s= Lambda(lambda x: x / 255)(inputs)
 
     # Encoder
     dropout_rate = self.config.get(MODEL, "dropout_rate")
-
     enc         = []
     kernel_size = (3, 3)
     pool_size   = (2, 2)
@@ -122,16 +117,13 @@ class TensorflowUNet:
       c = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal', padding='same')(s)
       c = Dropout(dropout_rate * i)(c)
       c = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal',padding='same')(c)
-
       if i < (num_layers-1):
         p = MaxPool2D(pool_size=pool_size)(c)
         s = p
-      
       enc.append(c)
     
     enc_len = len(enc)
     enc.reverse()
-
     n = 0
     c = enc[n]
     
@@ -140,7 +132,6 @@ class TensorflowUNet:
       f = enc_len - 2 - i
       filters = base_filters* (2**f)
       u = Conv2DTranspose(filters, (2, 2), strides=(2, 2), padding='same')(c)
-
       n += 1
       u = concatenate([u, enc[n]])
       u = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal', padding='same')(u)
