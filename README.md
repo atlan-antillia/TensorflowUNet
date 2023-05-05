@@ -88,7 +88,7 @@ in the following way:<br>
 
 <b>create</b> method in the <b>TensorflowUNet</b> class is slightly simple as shown below. 
 It mainly consists of two parts Encoder and Decoder, which are written by for loops depending
-on <b>num_layers</b> which defined in <b>model.config</b> file. 
+on <b>num_layers</b> defined in <b>model.config</b> file. 
 <pre>
   def create(self, num_classes, image_height, image_width, image_channels,
             base_filters = 16, num_layers = 5):
