@@ -307,4 +307,45 @@ in the following way.<br>
 This prediction process will create the grayscale image files with white predicted nuclei regions.<br>
 <img src="./asset/predictions_at_epoch_64.png" width="1024" height="auto"><br>
 
+<h2>
+5 Inference 
+</h2>
+ We can infer nuclei in <b>mini-test</b> dataset, which is a set of ten image files 
+extracted from "stage1_test" folders, by using Trained TensorflowUNet Model (weight_file),
+and <b>infer.config</b> file.<br>
+<pre>
+; infer.config
+[model]
+image_width    = 256
+image_height   = 256
+image_channels = 3
+num_classes    = 1
+base_filters   = 16
+num_layers     = 8
+dropout_rate   = 0.05
+learning_rate  = 0.001
+[train]
+model_dir     = "./models"
+[infer] 
+images_dir    = "./mini_test" 
+output_dir    = "./mini_test_output"
+</pre>
+
+Please run the Python script <a href="./TensorflowUNetNucleiInfer.py">TensorflowUNetNucleiInfer.py</a> 
+in the following way.<br>
+<pre>
+>python TensorflowUNetNucleiInfer.py
+</pre>
+This inference process will create the grayscale image files with white predicted nuclei regions, 
+and those images will have the same size of the input images respectively. Therefore,you can easily compare 
+the input images and the infered images.<br><br>
+
+<b>Input images (mini_test) </b><br>
+<img src="./asset/mini_test.png" width="1024" height="auto"><br>
+<br>
+<b>Infered images (mini_test_output)</b><br>
+
+<img src="./asset/mini_test_inference_output.png" width="1024" height="auto"><br><br>
+
+
 

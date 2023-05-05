@@ -18,7 +18,10 @@
 # 1. Keras U-Net starter - LB 0.277
 # https://www.kaggle.com/code/keegil/keras-u-net-starter-lb-0-277/notebook
 
-# 2. U-Net: Convolutional Networks for Biomedical Image Segmentation
+# 2. U-Net Image Segmentation in Keras
+# https://androidkt.com/tensorflow-keras-unet-for-image-image-segmentation/
+
+# 3. U-Net: Convolutional Networks for Biomedical Image Segmentation
 # https://arxiv.org/pdf/1505.04597.pdf
 
 # You can customize your TensorflowUnNet model by using a configration file
@@ -44,8 +47,10 @@ os.environ["TF_ENABLE_GPU_GARBAGE_COLLECTION"]="false"
 
 import shutil
 import sys
+import glob
 import traceback
 import numpy as np
+import cv2
 
 from tensorflow.keras.layers import Lambda
 from tensorflow.keras.layers import Input
@@ -64,6 +69,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from ConfigParser import ConfigParser
 #from NucleiDataset import NucleiDataset
 from EpochChangeCallback import EpochChangeCallback
+from GrayScaleImageWriter import GrayScaleImageWriter
 
 MODEL  = "model"
 TRAIN  = "train"
@@ -72,7 +78,7 @@ BEST_MODEL_FILE = "best_model.h5"
 class TensorflowUNet:
 
   def __init__(self, config_file):
-    self.config = ConfigParser(config_file)
+    self.config    = ConfigParser(config_file)
     image_height   = self.config.get(MODEL, "image_height")
 
     image_width    = self.config.get(MODEL, "image_width")
@@ -154,10 +160,8 @@ class TensorflowUNet:
   def train(self, x_train, y_train): 
     batch_size = self.config.get(TRAIN, "batch_size")
     epochs     = self.config.get(TRAIN, "epochs")
-
     patience   = self.config.get(TRAIN, "patience")
     eval_dir   = self.config.get(TRAIN, "eval_dir")
- 
     model_dir  = self.config.get(TRAIN, "model_dir")
 
     if os.path.exists(model_dir):
@@ -176,7 +180,32 @@ class TensorflowUNet:
                     callbacks=[early_stopping, check_point, epoch_change],
                     verbose=1)
 
-    
+  # 2023/05/05 Added newly.    
+  def infer(self, input_dir, output_dir, expand=True):
+    writer       = GrayScaleImageWriter()
+    # We are intereseted in png and jpg files.
+    # Sorry the bmp or tif files are ignored.
+    image_files  = glob.glob(input_dir + "/*.png")
+    image_files += glob.glob(input_dir + "/*.jpg")
+
+    width        = self.config.get(MODEL, "image_width")
+    height       = self.config.get(MODEL, "image_height")
+
+    for image_file in image_files:
+      basename = os.path.basename(image_file)
+      name     = basename.split(".")[0]
+      img      = cv2.imread(image_file, cv2.COLOR_BGR2RGB)
+      h = img.shape[0]
+      w = img.shape[1]
+      # Any way, we have to resize input image to match the input size of our TensorflowUNet model.
+      img         = cv2.resize(img, (width, height))
+      predictions = self.predict([img], expand=expand)
+      prediction  = predictions[0]
+      image       = prediction[0]    
+      # Resize the predicted image to be the original image size (w, h), and save it as a grayscale image.
+      # Probably, this is a natural way for all humans. 
+      writer.save_resized(image, (w, h), output_dir, name)
+     
 
   def predict(self, images, expand=True):
     model_dir  = self.config.get(TRAIN, "model_dir")
