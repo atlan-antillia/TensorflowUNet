@@ -85,6 +85,57 @@ in the following way:<br>
   config_file = "./model.config"
   model       = TensorflowUNet(config_file)
 </pre>
+
+<b>create</b> method in the <b>TensorflowUNet</b> class is slightly simple as shown below. 
+It mainly consists of two parts Encoder and Decoder, which are written by for loops depending
+on <b>num_layers</b> which defined in <b>model.config</b> file. 
+<pre>
+  def create(self, num_classes, image_height, image_width, image_channels,
+            base_filters = 16, num_layers = 5):
+    # inputs
+    print("Input image_height {} image_width {} image_channels {}".format(image_height, image_width, image_channels))
+    inputs = Input((image_height, image_width, image_channels))
+    s= Lambda(lambda x: x / 255)(inputs)
+
+    # Encoder
+    dropout_rate = self.config.get(MODEL, "dropout_rate")
+    enc         = []
+    kernel_size = (3, 3)
+    pool_size   = (2, 2)
+    for i in range(num_layers):
+      filters = base_filters * (2**i)
+      c = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal', padding='same')(s)
+      c = Dropout(dropout_rate * i)(c)
+      c = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal',padding='same')(c)
+      if i < (num_layers-1):
+        p = MaxPool2D(pool_size=pool_size)(c)
+        s = p
+      enc.append(c)
+    
+    enc_len = len(enc)
+    enc.reverse()
+    n = 0
+    c = enc[n]
+
+    # --- Decoder
+    for i in range(num_layers-1):
+      f = enc_len - 2 - i
+      filters = base_filters* (2**f)
+      u = Conv2DTranspose(filters, (2, 2), strides=(2, 2), padding='same')(c)
+      n += 1
+      u = concatenate([u, enc[n]])
+      u = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal', padding='same')(u)
+      u = Dropout(dropout_rate * f)(u)
+      u = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal',padding='same')(u)
+      c  = u
+    # outouts
+    outputs = Conv2D(num_classes, (1, 1), activation='sigmoid')(c)
+
+    # create Model
+    model = Model(inputs=[inputs], outputs=[outputs])
+    return model
+</pre>
+
 You can create TensorflowUNet Model by running the following command.<br>
 <pre>
 >python TensorflowUNet.py
