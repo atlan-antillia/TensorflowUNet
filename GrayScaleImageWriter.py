@@ -18,6 +18,8 @@
 # 2023/05/05 to-arai
 
 import os
+import cv2
+import traceback
 
 from PIL import Image
 
@@ -26,19 +28,58 @@ class GrayScaleImageWriter:
   def __init__(self, image_format=".jpg"):
     self.image_format = image_format
 
-  def save(self, data, output_dir, name):
-    
-    (h, w, c) = data.shape
+  def save(self, data, output_dir, name, factor=255.0):
+    h = data.shape[0]
+    w = data.shape[1]
+    #(h, w, c) = data.shape
     image = Image.new("L", (w, h))
-    for i in range(h):
-      for j in range(w):
-        z = data[i][j]
-        v = int(z[0]*255.0)
+    print(" image w: {} h: {}".format(w, h))
+    for i in range(w):
+      for j in range(h):
+        z = data[j][i]
+        if type(z) == list:
+          z = z[0]
+        v = int(z * factor)
         image.putpixel((i,j), v)
-    if not os.path.exists(output_dir):
-      os.makedirs(outout_dir)
 
     image_filepath = os.path.join(output_dir, name + self.image_format)
 
     image.save(image_filepath)
     print("=== Saved {}". format(image_filepath))
+
+    
+  
+  def save_resized(self, data, resized, output_dir, name, factor=255.0):
+    h = data.shape[0]
+    w = data.shape[1]
+    #(h, w, c) = data.shape
+    image = Image.new("L", (w, h))
+    print(" image w: {} h: {}".format(w, h))
+    for i in range(w):
+      for j in range(h):
+        z = data[j][i]
+        if type(z) == list:
+          z = z[0]
+        v = int(z * factor)
+        image.putpixel((i,j), v)
+
+    image_filepath = os.path.join(output_dir, name + self.image_format)
+ 
+    print("== resized to {}".format(resized))
+    image = image.resize(resized)
+    image.save(image_filepath)
+    print("=== Saved {}". format(image_filepath))
+
+    
+if __name__ == "__main__":
+  try:
+    writer = GrayScaleImageWriter()
+    file   = "./sarah-antillia.png"
+    img    = cv2.imread(file)
+    img    = cv2.cvtColor(img,  cv2.COLOR_BGR2GRAY)
+    writer.save(img, "./", "sarah-antillia-gray", factor=1.0)
+    writer.save_resized(img, (255, 255), "./", "sarah-antillia-gray-resized", factor=1.0)
+
+  except:
+    traceback.print_exc()
+
