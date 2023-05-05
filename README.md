@@ -277,7 +277,7 @@ You can run the following Python script <a href="./TensorflowUNetNucleiTrainer.p
 <h2>
 4 Prediction 
 </h2>
- We can predict nuclei in <b>test</b> dataset by using Trained TensorflowUNet Model (weight_file),
+ We can predict nuclei in <b>test</b> dataset by using our Trained TensorflowUNet Model,
 and <b>predict.config</b> file.<br>
 <pre>
 ; predict.config
@@ -310,8 +310,8 @@ This prediction process will create the grayscale image files with white predict
 <h2>
 5 Inference 
 </h2>
- We can infer nuclei in <b>mini-test</b> dataset, which is a set of ten image files 
-extracted from "stage1_test" folders, by using Trained TensorflowUNet Model (weight_file),
+ We can infer nuclei in <b>mini_test</b> dataset, which is a set of ten image files 
+extracted from the images in "stage1_test" folder, by using our Trained TensorflowUNet Model,
 and <b>infer.config</b> file.<br>
 <pre>
 ; infer.config
@@ -337,8 +337,8 @@ in the following way.<br>
 >python TensorflowUNetNucleiInfer.py
 </pre>
 This inference process will create the grayscale image files with white predicted nuclei regions, 
-and those images will have the same size of the input images respectively. Therefore,you can easily compare 
-the input images and the infered images.<br><br>
+and those images will have the same size of the original input images respectively. Therefore, you can easily compare 
+the input images and the infered output images.<br><br>
 
 <b>Input images (mini_test) </b><br>
 <img src="./asset/mini_test.png" width="1024" height="auto"><br>
