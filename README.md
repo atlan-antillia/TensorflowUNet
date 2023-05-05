@@ -345,6 +345,8 @@ in the following way.<br>
 <br>
 This prediction process will create the grayscale image files with white predicted nuclei regions.<br>
 <img src="./asset/predictions_at_epoch_64.png" width="1024" height="auto"><br>
+We have created <a href="./GrayScaleImageWriter.py">GrayScaleImageWriter</a> class to save the predicted images
+as the grayscale image jpg files.<br>
 
 <h2>
 5 Inference 
