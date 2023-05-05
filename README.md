@@ -1,10 +1,10 @@
-# TensorflowUNet (Updated: 2023/05/05)
+# Tensorflow-Slightly-Flexible-UNet (Updated: 2023/05/05)
 
 <h2>
 1 Tensorflow UNet Model
 </h2>
 <p>
-This is a slightly flexible UNet Model Implementation by Tensorflow 2.
+This is a slightly flexible UNet Model Implementation by Tensorflow 2, which is literally cusomizable by a configuration file.
 </p>
 In order to write the extensible UNet Model, we have used the Python scripts in the following web sites.
 </p>
@@ -38,8 +38,8 @@ base_filters   = 16
 num_layers     = 8
 dropout_rate   = 0.05
 learning_rate  = 0.001
-
 </pre>
+The image_width and image_height must be the same size and can take a multiple of 128. The size will depend on the dataset to be used to train your UNet Model.<br>
 You will pass the filename of this configuration file to <a href="./TensorflowUNet.py">TensorflowUNet</a> constructor to create your model 
 in the following way:<br>
 <pre>
