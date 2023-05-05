@@ -25,7 +25,6 @@ See also:
 2 Create TensorflowUNet Model
 </h2>
  You can customize your TensorflowUNet model by using a configration file.<br>
-
 <pre>
 ; model.config
 [model]
@@ -39,7 +38,47 @@ num_layers     = 8
 dropout_rate   = 0.05
 learning_rate  = 0.001
 </pre>
-The image_width and image_height must be the same size and can take a multiple of 128. The size will depend on the dataset to be used to train your UNet Model.<br>
+This TensorflowUNet model is a typical classic U-Net model, and consists of two module, Encoder and Decoder. <br>
+The parameters defined in this model.config will be used to create the CNN layers of Encoder and Decoder.<br>
+<table width="720" >
+
+<tr>
+<td>image_width and image_height</td>
+<td>
+The input image size to the first layer of Encoder. 
+These values must be the same size and can take a multiple of 128. The size will depend on the dataset to be used to train your UNet Model.
+</td>
+</tr>
+
+<tr>
+<td>num_classes</td>
+<td>The number of classes of dataset.</td>
+</tr>
+
+<tr>
+<td>base_filters</td>
+<td>The number of initial filters for Conv2D layer.</td>
+</tr>
+<tr>
+<td>num_layers</td>
+<td>
+The number of blocks of Decoder and Encoder. 
+</td>
+</tr>
+
+<tr>
+<td>dropout_rate</td>
+<td>The initial dropout_rate for Dropout layer </td>
+</tr>
+
+<tr>
+<td>learning_rate</td>
+<td>The learining_rate for Adam optimizer </td>
+</tr>
+
+</table>
+
+<br>
 You will pass the filename of this configuration file to <a href="./TensorflowUNet.py">TensorflowUNet</a> constructor to create your model 
 in the following way:<br>
 <pre>
