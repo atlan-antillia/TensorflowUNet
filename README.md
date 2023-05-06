@@ -38,7 +38,7 @@ num_layers     = 8
 dropout_rate   = 0.05
 learning_rate  = 0.001
 </pre>
-This TensorflowUNet model is a typical classic U-Net model, and consists of two module, Encoder and Decoder. <br>
+This TensorflowUNet model is a typical classic U-Net model, and consists of two modules, Encoder and Decoder. <br>
 The parameters defined in this model.config will be used to create the CNN layers of Encoder and Decoder.<br>
 <table width="720" >
 
