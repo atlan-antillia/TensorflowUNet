@@ -354,6 +354,39 @@ You can run the following Python script <a href="./TensorflowUNetNucleiTrainer.p
 <pre>
 >python TensorflowUNetNucleiTrainer.py
 </pre>
+This Python script will create train dataset by using <a href="./NucleiDataset.py">NucleiDataset.py</a> from
+ the images and masks under "./stage1_train" folder, and 
+call <b>train</b> method of TensorflowUNetModel. The train method is the following.<br>
+<pre>
+  def train(self, x_train, y_train): 
+    batch_size = self.config.get(TRAIN, "batch_size")
+    epochs     = self.config.get(TRAIN, "epochs")
+    patience   = self.config.get(TRAIN, "patience")
+    eval_dir   = self.config.get(TRAIN, "eval_dir")
+    model_dir  = self.config.get(TRAIN, "model_dir")
+
+    if os.path.exists(model_dir):
+      shutil.rmtree(model_dir)
+
+    if not os.path.exists(model_dir):
+      os.makedirs(model_dir)
+    weight_filepath   = os.path.join(model_dir, BEST_MODEL_FILE)
+
+    early_stopping = EarlyStopping(patience=patience, verbose=1)
+    check_point    = ModelCheckpoint(weight_filepath, verbose=1, save_best_only=True)
+    epoch_change   = EpochChangeCallback(eval_dir)
+
+    results = self.model.fit(x_train, y_train, 
+                    validation_split=0.2, batch_size=batch_size, epochs=epochs, 
+                    callbacks=[early_stopping, check_point, epoch_change],
+                    verbose=1)
+</pre>
+, in which we pass a list of three types callbacks as an argument of <b>fit</b> method.
+<pre> 
+callbacks = [early_stopping, check_point, epoch_change]  
+</pre>
+The <b>early_stopping</b> callback created by a <b>patience</b> parameter 
+will be used to stop traing early to avoid overfitting.<br>
 <img src="./asset/train_console_at_epoch_64.png" width="720" height="auto"><br>
 <br>
 <b>Train accuracies line graph</b>:<br>
