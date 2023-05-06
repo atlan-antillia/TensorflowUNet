@@ -357,6 +357,7 @@ You can run the following Python script <a href="./TensorflowUNetNucleiTrainer.p
 This Python script will create train dataset by using <a href="./NucleiDataset.py">NucleiDataset.py</a> from
  the images and masks under "./stage1_train" folder, and 
 call <b>train</b> method of TensorflowUNetModel. The train method is the following.<br>
+
 <pre>
   def train(self, x_train, y_train): 
     batch_size = self.config.get(TRAIN, "batch_size")
@@ -386,7 +387,8 @@ call <b>train</b> method of TensorflowUNetModel. The train method is the followi
 callbacks = [early_stopping, check_point, epoch_change]  
 </pre>
 The <b>early_stopping</b> callback created by a <b>patience</b> parameter 
-will be used to stop traing early to avoid overfitting.<br>
+will be used to stop traing early to avoid overfitting.<br><br>
+
 <img src="./asset/train_console_at_epoch_64.png" width="720" height="auto"><br>
 <br>
 <b>Train accuracies line graph</b>:<br>
