@@ -86,7 +86,7 @@ in the following way:<br>
   model       = TensorflowUNet(config_file)
 </pre>
 
-<b>create</b> method in the <b>TensorflowUNet</b> class is slightly simple as shown below. 
+Our <b>create</b> method in the <b>TensorflowUNet</b> class is slightly simple as shown below, though you don't care.
 It mainly consists of two parts Encoder and Decoder, which are written by <b>for</b> loops depending
 on <b>num_layers</b> defined in <b>model.config</b> file. 
 <pre>
