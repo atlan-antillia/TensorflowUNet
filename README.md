@@ -388,8 +388,8 @@ callbacks = [early_stopping, check_point, epoch_change]
 </pre>
 As you know, the <b>early_stopping</b> callback created by a <b>patience</b> parameter defined 
 in <b>train.config</b> file 
-will be used to stop training early to avoid overfitting.<br><br>
-
+will be used to stop training early to avoid overfitting.
+In this case, the training processed has just been stopped at epoch 64 by that callback.<br><br>
 <img src="./asset/train_console_at_epoch_64.png" width="720" height="auto"><br>
 <br>
 <b>Train accuracies line graph</b>:<br>
