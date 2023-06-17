@@ -24,6 +24,9 @@
 # You can customize your TensorflowUnNet model by using a configration file
 # Example: train.config
 
+# 2023/05/28 Added dilation_rate parameter to Conv2D
+# 2023/05/28 Modified to read loss and metrics from train_eval_infer.config file.
+
 """
 [model]
 image_width    = 256
@@ -37,10 +40,21 @@ dropout_rate   = 0.05
 learning_rate  = 0.001
 """
 
+# 2023/06/07 Added 
+  # 1 Split the orginal image to some tiled-images
+  # 2 Infer segmentation regions on those images 
+  # 3 Merge detected regions into one image
+#
+#  def infer_tiles(self, input_dir, output_dir, expand=True):
+   
+
+
 import os
+import random
 
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 os.environ["TF_ENABLE_GPU_GARBAGE_COLLECTION"]="false"
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 import shutil
 import sys
@@ -48,33 +62,41 @@ import glob
 import traceback
 import numpy as np
 import cv2
+import tensorflow as tf
+import random
 
 from tensorflow.keras.layers import Lambda
 from tensorflow.keras.layers import Input
 
-from tensorflow.keras.layers import Conv2D, Dropout, Conv2D, MaxPool2D
+from tensorflow.keras.layers import Conv2D, Dropout, Conv2D, MaxPool2D, BatchNormalization
 
 from tensorflow.keras.layers import Conv2DTranspose
 from tensorflow.keras.layers import concatenate
 from tensorflow.keras.activations import elu, relu
 from tensorflow.keras import Model
-#from tensorflow.keras.losses import SparseCategoricalCrossentropy
-#from tensorflow.keras.metrics import Mean
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from losses import dice_coef, basnet_hybrid_loss, sensitivity, specificity
+from losses import iou_coef, iou_loss, bce_iou_loss
 
 from ConfigParser import ConfigParser
-#from NucleiDataset import NucleiDataset
+
 from EpochChangeCallback import EpochChangeCallback
 from GrayScaleImageWriter import GrayScaleImageWriter
+from PIL import Image
 
 MODEL  = "model"
 TRAIN  = "train"
+INFER  = "infer"
+TILEDINFER = "tiledinfer"
+
 BEST_MODEL_FILE = "best_model.h5"
 
 class TensorflowUNet:
 
   def __init__(self, config_file):
+    self.set_seed()
+
     self.config    = ConfigParser(config_file)
     image_height   = self.config.get(MODEL, "image_height")
 
@@ -84,6 +106,10 @@ class TensorflowUNet:
     num_classes    = self.config.get(MODEL, "num_classes")
     base_filters   = self.config.get(MODEL, "base_filters")
     num_layers     = self.config.get(MODEL, "num_layers")
+ 
+
+    if not (image_width == image_height and  image_width % 128 == 0 and image_height % 128 == 0):
+      raise Exception("Image width should be a multiple of 128. For example 128, 256, 512")
     
     self.model     = self.create(num_classes, image_height, image_width, image_channels, 
                             base_filters = base_filters, num_layers = num_layers)
@@ -94,11 +120,42 @@ class TensorflowUNet:
          beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, 
          amsgrad=False) 
 
-    self.metrics = ["accuracy"]
-    self.model.compile(optimizer = self.optimizer, loss="binary_crossentropy", metrics = self.metrics)
-    self.model.summary()
+    #  Modified to read loss and metrics from train_eval_infer.config file.
+    binary_crossentropy = tf.keras.metrics.binary_crossentropy
+    binary_accuracy     = tf.keras.metrics.binary_accuracy
+
+    # Default loss and metrics functions
+    self.loss    = binary_crossentropy
+    self.metrics = [binary_accuracy]
     
+    # Read a loss function name from our config file, and eval it.
+    # loss = "binary_crossentropy"
+    loss = self.config.get(MODEL, "loss")
+    print("=== loss {}".format(loss))
+    self.loss  = eval(loss)
+
+    # Read a list of metrics function names, ant eval each of the list,
+    # metrics = ["binary_accuracy"]
+    metrics  = self.config.get(MODEL, "metrics")
+    self.metrics = []
+    for metric in metrics:
+      self.metrics.append(eval(metric))
+    
+    print("--- loss    {}".format(self.loss))
+    print("--- metrics {}".format(self.metrics))
+
+    self.model.compile(optimizer = self.optimizer, loss= self.loss, metrics = self.metrics)
+    show_summary = self.config.get(MODEL, "show_summary")
+    if show_summary:
+      self.model.summary()    
     self.model_loaded = False
+
+
+  def set_seed(self, seed=137):
+    print("=== set seed {}".format(seed))
+    random.seed    = seed
+    np.random.seed = seed
+    tf.random.set_seed(seed)
 
   def create(self, num_classes, image_height, image_width, image_channels,
             base_filters = 16, num_layers = 5):
@@ -110,34 +167,77 @@ class TensorflowUNet:
     # Encoder
     dropout_rate = self.config.get(MODEL, "dropout_rate")
     enc         = []
-    kernel_size = (3, 3)
-    pool_size   = (2, 2)
 
+    pool_size    = (2, 2)
+    #kernel_sizes = [(7,7), (5,5)]
+    # <experiment on="2023/06/07"> 
+    base_kernels   = self.config.get(MODEL, "base_kernels", dvalue=[(3,3)])
+    
+    kernel_sizes = []
+    kernel_sizes += base_kernels
+    for n in range(num_layers-len(base_kernels)):
+      kernel_sizes  += [(3,3)]  
+    rkernel_sizes =  kernel_sizes[::-1]
+    print("--- kernel_size   {}".format(kernel_sizes))
+    print("--- rkernel_size  {}".format(rkernel_sizes))
+    # </experiment>
+
+    dilation    = self.config.get(MODEL, "dilation")
+    print("=== dilation {}".format(dilation))      
+    #kernel_sizes = self.config.get(MODEL, "kernel_sizes")
+  
+    strides = (1,1)
     for i in range(num_layers):
       filters = base_filters * (2**i)
-      c = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal', padding='same')(s)
+      kernel_size = kernel_sizes[i] #random.choice(kernel_sizes)
+    
+  
+      c = Conv2D(filters, kernel_size, strides=strides, activation=relu, 
+                 kernel_initializer='he_normal', dilation_rate=dilation, padding='same')(s)
       c = Dropout(dropout_rate * i)(c)
-      c = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal',padding='same')(c)
+      c = Conv2D(filters, kernel_size, strides=strides, activation=relu, 
+                 kernel_initializer='he_normal', dilation_rate=dilation, padding='same')(c)
+      # 2023/06/06 Added the following block
+      #c = Dropout(dropout_rate * i)(c)
+      #c = Conv2D(filters, kernel_size, strides=strides, activation=relu, 
+      #           kernel_initializer='he_normal', dilation_rate=dilation, padding='same')(c)
+      #c = BatchNormalization(c)
+    
       if i < (num_layers-1):
         p = MaxPool2D(pool_size=pool_size)(c)
         s = p
       enc.append(c)
-    
+
+    #print(enc)
     enc_len = len(enc)
+    print("---len {}".format(enc_len))
     enc.reverse()
     n = 0
     c = enc[n]
     
     # --- Decoder
+   
     for i in range(num_layers-1):
+      kernel_size = rkernel_sizes[i] #random.choice(kernel_sizes)
+
       f = enc_len - 2 - i
       filters = base_filters* (2**f)
+      #for kernel_size in reversed(kernel_sizes):
       u = Conv2DTranspose(filters, (2, 2), strides=(2, 2), padding='same')(c)
       n += 1
       u = concatenate([u, enc[n]])
-      u = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal', padding='same')(u)
+      u = Conv2D(filters, kernel_size, strides=strides, activation=relu, 
+                 kernel_initializer='he_normal', dilation_rate=dilation, padding='same')(u)
       u = Dropout(dropout_rate * f)(u)
-      u = Conv2D(filters, kernel_size, activation=relu, kernel_initializer='he_normal',padding='same')(u)
+      u = Conv2D(filters, kernel_size, strides=strides, activation=relu, 
+                 kernel_initializer='he_normal', dilation_rate=dilation, padding='same')(u)
+      
+      # 2023/06/06 Added the following block      
+      #u = Dropout(dropout_rate * f)(u)
+      #u = Conv2D(filters, kernel_size, strides=strides, activation=relu, 
+      #           kernel_initializer='he_normal', dilation_rate=dilation, padding='same')(u)
+      #u = BatchNormalization(u)
+      
       c  = u
 
     # outouts
@@ -155,7 +255,11 @@ class TensorflowUNet:
     patience   = self.config.get(TRAIN, "patience")
     eval_dir   = self.config.get(TRAIN, "eval_dir")
     model_dir  = self.config.get(TRAIN, "model_dir")
-
+    metrics    = ["accuracy", "val_accuracy"]
+    try:
+      metrics    = self.config.get(TRAIN, "metrics")
+    except:
+      pass
     if os.path.exists(model_dir):
       shutil.rmtree(model_dir)
 
@@ -165,10 +269,11 @@ class TensorflowUNet:
 
     early_stopping = EarlyStopping(patience=patience, verbose=1)
     check_point    = ModelCheckpoint(weight_filepath, verbose=1, save_best_only=True)
-    epoch_change   = EpochChangeCallback(eval_dir)
+    epoch_change   = EpochChangeCallback(eval_dir, metrics)
 
     history = self.model.fit(x_train, y_train, 
                     validation_split=0.2, batch_size=batch_size, epochs=epochs, 
+                    shuffle=False,
                     callbacks=[early_stopping, check_point, epoch_change],
                     verbose=1)
 
@@ -186,20 +291,31 @@ class TensorflowUNet:
         message = "Not found a weight_file " + weight_filepath
         raise Exception(message)
     else:
-      print("== Already loaded a weight file loaded {}".format(weight_filepath))
+      print("== Already loaded a weight file loaded ")
     return rc
 
 
   # 2023/05/05 Added newly.    
   def infer(self, input_dir, output_dir, expand=True):
     writer       = GrayScaleImageWriter()
-    # We are intereseted in png and jpg files.
-    # Sorry the bmp or tif files are ignored.
+    
     image_files  = glob.glob(input_dir + "/*.png")
     image_files += glob.glob(input_dir + "/*.jpg")
+    image_files += glob.glob(input_dir + "/*.tif")
+    image_files += glob.glob(input_dir + "/*.bmp")
 
     width        = self.config.get(MODEL, "image_width")
     height       = self.config.get(MODEL, "image_height")
+    # 2023/05/24
+    merged_dir   = None
+    try:
+      merged_dir = self.config.get(INFER, "merged_dir")
+      if os.path.exists(merged_dir):
+        shutil.rmtree(merged_dir)
+      if not os.path.exists(merged_dir):
+        os.makedirs(merged_dir)
+    except:
+      pass
 
     for image_file in image_files:
       basename = os.path.basename(image_file)
@@ -214,8 +330,18 @@ class TensorflowUNet:
       image       = prediction[0]    
       # Resize the predicted image to be the original image size (w, h), and save it as a grayscale image.
       # Probably, this is a natural way for all humans. 
-      writer.save_resized(image, (w, h), output_dir, name)
-     
+      mask = writer.save_resized(image, (w, h), output_dir, name)
+      # 2023/05/24
+      print("--- image_file {}".format(image_file))
+      if merged_dir !=None:
+        # Resize img to the original size (w, h)
+        img   = cv2.resize(img, (w, h))
+        print("=== mask {}".format(mask.shape))
+        print("=== image {}".format(img.shape))
+
+        img += mask
+        merged_file = os.path.join(merged_dir, basename)
+        cv2.imwrite(merged_file, img)     
 
   def predict(self, images, expand=True):
     self.load_model()
@@ -230,35 +356,129 @@ class TensorflowUNet:
     return predictions    
 
 
+  # 2023/06/05
+  # 1 Split the orginal image to some tiled-images
+  # 2 Infer segmentation regions on those images 
+  # 3 Merge detected regions into one image
+  # 2023/06/15
+  def infer_tiles(self, input_dir, output_dir, expand=True):
+    
+    image_files  = glob.glob(input_dir + "/*.png")
+    image_files += glob.glob(input_dir + "/*.jpg")
+    image_files += glob.glob(input_dir + "/*.tif")
+    image_files += glob.glob(input_dir + "/*.bmp")
+
+    merged_dir   = None
+    try:
+      merged_dir = self.config.get(TILEDINFER, "merged_dir")
+      if os.path.exists(merged_dir):
+        shutil.rmtree(merged_dir)
+      if not os.path.exists(merged_dir):
+        os.makedirs(merged_dir)
+    except:
+      pass
+    split_size  = self.config.get(MODEL, "image_width")
+    print("---split_size {}".format(split_size))
+
+    for image_file in image_files:
+      image = Image.open(image_file)
+      w, h  = image.size
+
+      vert_split_num  = h // split_size
+      if h % split_size != 0:
+        vert_split_num += 1
+
+      horiz_split_num = w // split_size
+      if w % split_size != 0:
+        horiz_split_num += 1
+
+    
+      background      = Image.new("L", (w, h))
+      #print("=== width {} height {}".format(w, h))
+      #print("=== horiz_split_num {}".format(horiz_split_num))
+      #print("=== vert_split_num  {}".format(vert_split_num))
+      #input("----")
+      for j in range(vert_split_num):
+        for i in range(horiz_split_num):
+          left  = split_size * i
+          upper = split_size * j
+          right = left  + split_size
+          lower = upper + split_size
+
+          if left >=w or upper >=h:
+            continue 
+      
+          cropped = image.crop((left, upper, right, lower))
+          cropped = cropped.resize((split_size, split_size))
+          predictions = self.predict([cropped], expand=expand)
+          prediction  = predictions[0]
+          mask        = prediction[0]    
+
+          img         = self.mask_to_image(mask)
+          img         = img.convert("L")
+          #blurred     = img.filter(filter=ImageFilter.BLUR)
+          background.paste(img, (left, upper))
+          #print("---paste j:{} i:{}".format(j, i))
+          #input("HHHIT")  
+      basename = os.path.basename(image_file)
+      output_file = os.path.join(output_dir, basename)
+      #input("----")
+      #background = background.filter(filter=ImageFilter.BLUR)
+      background.save(output_file)
+      
+      if merged_dir !=None:
+        # Resize img to the original size (w, h)
+        img   = np.array(image)
+        img   = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        mask  = np.array(background)
+        mask   = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+        img += mask
+
+        merged_file = os.path.join(merged_dir, basename)
+        cv2.imwrite(merged_file, img)     
+
+
+  def mask_to_image(self, data, factor=255.0):
+    
+    h = data.shape[0]
+    w = data.shape[1]
+
+    data = data*factor
+    data = data.reshape([w, h])
+    image = Image.fromarray(data)
+    return image
+    """
+    image = Image.new("L", (w, h))
+    
+    for i in range(w):
+      for j in range(h):
+        z = data[j][i]
+        if type(z) == list:
+          z = z[0]
+        v = int(z * factor)
+        image.putpixel((i,j), v)
+ 
+    return image
+    """
+
+
   def evaluate(self, x_test, y_test): 
     self.load_model()
 
     score = self.model.evaluate(x_test, y_test, verbose=1)
-    print("Test loss    :{}".format(score[0]))     
-    print("Test accuracy:{}".format(score[1]))
+    #print("score {}".format(score))
      
     
 if __name__ == "__main__":
   try:
-    config_file    = "./model.config"
-    config   = ConfigParser(config_file)
-
-    width    = config.get(MODEL, "image_width")
-    height   = config.get(MODEL, "image_height")
-    channels = config.get(MODEL, "image_channels")
-
-    if not (width == height and  height % 128 == 0 and width % 128 == 0):
-      raise Exception("Image width should be a multiple of 128. For example 128, 256, 512")
+    config_file    = "./train_eval_infer.config"
     
     # Create a UNetMolde and compile
     model    = TensorflowUNet(config_file)
     
     """
-    resized_image     = (height, width, channels)
-    train_datapath    = "./stage1_train/"
-    dataset           = NucleiDataset(resized_image)
-
-    x_train, y_train  = dataset.create(train_datapath, has_mask=True)
+    datatset = ImageMaskDataset(config_file)
+    x_train, y_train  = dataset.create(dataset=TRAIN)
 
     model.train(x_train, y_train)
     """
