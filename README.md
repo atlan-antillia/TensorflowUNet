@@ -152,8 +152,10 @@ Pleae run the following bat file.<br>
 >python TensorflowUNet.py  train_eval_infer.config
 </pre>
 
-You can customize your <a href="./TensorflowUNet.py">TensorflowUNet</a> Model by using a configuration file <b>
-train_eval_infer.config</b>
+You can customize your <a href="./TensorflowUNet.py">TensorflowUNet</a> Model by using a configuration file
+<a href="./projects/Nuclei/train_eval_infer.config">
+ <b>train_eval_infer.config</b></a>
+
 <pre>
 ; train_eval_infer.config
 ; model section
