@@ -188,7 +188,7 @@ class TensorflowUNet:
       if k <3:
         k = 3
     rkernel_sizes =  kernel_sizes[::-1]
-    # kernel_sizes will become a list [(7,7),(5,5), (3,3),(3,3)...] if base_kernels were (7,7)
+
     print("--- kernel_size   {}".format(kernel_sizes))
     print("--- rkernel_size  {}".format(rkernel_sizes))
     # </experiment>
@@ -199,6 +199,7 @@ class TensorflowUNet:
         dilation = dilation_
     except:
       pass
+    
 
     for i in range(num_layers):
       filters = base_filters * (2**i)
@@ -215,6 +216,7 @@ class TensorflowUNet:
       # 2023/06/21
       #if normalization:
       #  c = BatchNormalization()(c) 
+
       if i < (num_layers-1):
         p = MaxPool2D(pool_size=pool_size)(c)
         s = p
@@ -245,6 +247,7 @@ class TensorflowUNet:
       # 2023/06/21
       #if normalization:
       #  u = BatchNormalization()(u) 
+      
       c  = u
 
     # outouts
@@ -261,7 +264,6 @@ class TensorflowUNet:
     dt_now = dt_now.replace(":", "_").replace(" ", "_")
     create_backup = self.config.get(TRAIN, "create_backup", False)
     if os.path.exists(eval_dir):
-      # if create_backup flag is True, move previous eval_dir to *_bak  
       if create_backup:
         moved_dir = eval_dir +"_" + dt_now + "_bak"
         shutil.move(eval_dir, moved_dir)
@@ -273,7 +275,6 @@ class TensorflowUNet:
       os.makedirs(eval_dir)
 
     if os.path.exists(model_dir):
-      # if create_backup flag is True, move previous model_dir to *_bak  
       if create_backup:
         moved_dir = model_dir +"_" + dt_now + "_bak"
         shutil.move(model_dir, moved_dir)
@@ -297,7 +298,7 @@ class TensorflowUNet:
       pass
     # 2023/06/20
     self.create_dirs(eval_dir, model_dir)
-    # Copy current config_file to model_dir
+
     shutil.copy2(self.config_file, model_dir)
     print("-- Copied {} to {}".format(self.config_file, model_dir))
     
@@ -344,16 +345,6 @@ class TensorflowUNet:
     width        = self.config.get(MODEL, "image_width")
     height       = self.config.get(MODEL, "image_height")
 
-    merged_dir   = None
-    try:
-      merged_dir = self.config.get(INFER, "merged_dir")
-      if os.path.exists(merged_dir):
-        shutil.rmtree(merged_dir)
-      if not os.path.exists(merged_dir):
-        os.makedirs(merged_dir)
-    except:
-      pass
-
     for image_file in image_files:
       basename = os.path.basename(image_file)
       name     = basename.split(".")[0]
@@ -367,15 +358,8 @@ class TensorflowUNet:
       image       = prediction[0]    
       # Resize the predicted image to be the original image size (w, h), and save it as a grayscale image.
       # Probably, this is a natural way for all humans. 
-      mask = writer.save_resized(image, (w, h), output_dir, name)
+      writer.save_resized(image, (w, h), output_dir, name)
 
-      print("--- image_file {}".format(image_file))
-      if merged_dir !=None:
-        # Resize img to the original size (w, h)
-        img   = cv2.resize(img, (w, h))
-        img += mask
-        merged_file = os.path.join(merged_dir, basename)
-        cv2.imwrite(merged_file, img)
 
   def predict(self, images, expand=True):
     self.load_model()
@@ -392,7 +376,7 @@ class TensorflowUNet:
   # 1 Split the orginal image to some tiled-images
   # 2 Infer segmentation regions on those images 
   # 3 Merge detected regions into one image
-  
+
   def infer_tiles(self, input_dir, output_dir, expand=True):
     
     image_files  = glob.glob(input_dir + "/*.png")
@@ -411,7 +395,7 @@ class TensorflowUNet:
       pass
     split_size  = self.config.get(MODEL, "image_width")
     print("---split_size {}".format(split_size))
-
+    
     for image_file in image_files:
       image = Image.open(image_file)
       w, h  = image.size
@@ -424,11 +408,14 @@ class TensorflowUNet:
       if w % split_size != 0:
         horiz_split_num += 1
 
-      background      = Image.new("L", (w, h))
+      bgcolor = self.config.get(TILEDINFER, "background", dvalue=0)  
+      print("=== bgcolor {}".format(bgcolor))
+      background = Image.new("L", (w, h), bgcolor)
       #print("=== width {} height {}".format(w, h))
       #print("=== horiz_split_num {}".format(horiz_split_num))
       #print("=== vert_split_num  {}".format(vert_split_num))
       #input("----")
+      MARGIN = 2
       for j in range(vert_split_num):
         for i in range(horiz_split_num):
           left  = split_size * i
@@ -439,18 +426,26 @@ class TensorflowUNet:
           if left >=w or upper >=h:
             continue 
       
-          cropped = image.crop((left, upper, right, lower))
+          #cropped = image.crop((left, upper, right, lower))
+          #2023/06/21
+          cropped = image.crop((left-MARGIN, upper-MARGIN, right+MARGIN, lower+MARGIN ))
+          cw, ch  = cropped.size
           cropped = cropped.resize((split_size, split_size))
           predictions = self.predict([cropped], expand=expand)
           prediction  = predictions[0]
           mask        = prediction[0]    
 
           img         = self.mask_to_image(mask)
+          img         = img.resize((cw, ch))
+
           img         = img.convert("L")
-          #blurred     = img.filter(filter=ImageFilter.BLUR)
+          #2023/06/21
+          ww, hh      = img.size
+          img         = img.crop((MARGIN, MARGIN, ww-MARGIN, hh-MARGIN))
+          ww, hh      = img.size
           background.paste(img, (left, upper))
-          #print("---paste j:{} i:{}".format(j, i))
-          #input("HHHIT")  
+          print("---paste j:{} i:{} ww:{} hh:{}".format(j, i, ww, hh))
+          input("HHHIT")  
       basename = os.path.basename(image_file)
       output_file = os.path.join(output_dir, basename)
       #input("----")
@@ -462,7 +457,7 @@ class TensorflowUNet:
         img   = np.array(image)
         img   = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         mask  = np.array(background)
-        mask  = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+        mask   = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
         img += mask
 
         merged_file = os.path.join(merged_dir, basename)

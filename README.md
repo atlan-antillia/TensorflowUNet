@@ -1,4 +1,4 @@
-# Tensorflow-Slightly-Flexible-UNet (Updated: 2023/06/18)
+# Tensorflow-Slightly-Flexible-UNet (Updated: 2023/06/23)
 
 <h2>
 1 Tensorflow UNet Model
@@ -31,6 +31,9 @@ Find the nuclei in divergent images to advance medical discovery
 <li>2023/06/18: Modified to write the merged (image+mask) inferred image files.</li>
 <li>2023/06/18: Created ./projects/Nuclei folder.</li>
 <li>2023/06/18: Modified to use ImageMaskDataset instead of NucleiDataset.</li>
+<li>2023/06/23: Updated create and train methods in TensorflowUNet class.<br>
+   You may specify BatchNormalization flag and base kernel size in model section of config file.
+</li>
 </ul>
 <br>
 <h2>
@@ -165,10 +168,14 @@ image_height   = 256
 image_channels = 3
 num_classes    = 1
 base_filters   = 16
+; 2023/06/23 base kernel size 
+base_kernels   = (3, 3)
 num_layers     = 8
 loss           = "binary_crossentropy"
 metrics        = ["binary_accuracy"]
 dilation       = (2, 2)
+; 2023/06/23 BatchNormalization flag
+normalization  = False
 dropout_rate   = 0.05
 learning_rate  = 0.001
 show_summary   = True
@@ -244,31 +251,53 @@ on <b>num_layers</b> defined in <b>model</b> section in that cofiguration file.
   def create(self, num_classes, image_height, image_width, image_channels,
             base_filters = 16, num_layers = 5):
     # inputs
+    print("Input image_height {} image_width {} image_channels {}".format(image_height, image_width, image_channels))
     inputs = Input((image_height, image_width, image_channels))
     s= Lambda(lambda x: x / 255)(inputs)
 
+    normalization = self.config.get(MODEL, "normalization", dvalue=False)
+    print("--- normalization {}".format(normalization))
     # Encoder
     dropout_rate = self.config.get(MODEL, "dropout_rate")
     enc         = []
-
-    pool_size    = (2, 2)
-    #kernel_sizes = [(7,7), (5,5)]
-    # <experiment on="2023/06/17"> 
-    base_kernels   = self.config.get(MODEL, "base_kernels", default=[(3,3)])
+    kernel_size = (3, 3)
+    pool_size   = (2, 2)
+    dilation    = (2, 2)
+    strides     = (1, 1)
+    # <experiment on="2023/06/20">
+    # [model] 
+    # Specify a tuple of base kernel size of odd number something like this: 
+    # base_kernels = (5,5)
+    base_kernels   = self.config.get(MODEL, "base_kernels", dvalue=(3,3))
+    (k, k) = base_kernels
     kernel_sizes = []
-    kernel_sizes += base_kernels
-    for n in range(num_layers-len(base_kernels)):
-      kernel_sizes  += [(3,3)]  
+    for n in range(num_layers):
+      kernel_sizes += [(k, k)]
+      k -= 2
+      if k <3:
+        k = 3
     rkernel_sizes =  kernel_sizes[::-1]
+    # kernel_sizes will become a list [(7,7),(5,5), (3,3),(3,3)...] if base_kernels were (7,7)
+    print("--- kernel_size   {}".format(kernel_sizes))
+    print("--- rkernel_size  {}".format(rkernel_sizes))
     # </experiment>
-    dilation    = self.config.get(MODEL, "dilation")
-  
-    strides = (1,1)
+    try:
+      dilation_ = self.config.get(MODEL, "dilation")
+      (d1, d2) = dilation_
+      if d1 == d2:
+        dilation = dilation_
+    except:
+      pass
+
     for i in range(num_layers):
       filters = base_filters * (2**i)
-      kernel_size = kernel_sizes[i] #random.choice(kernel_sizes)
+      kernel_size = kernel_sizes[i] 
+
       c = Conv2D(filters, kernel_size, strides=strides, activation=relu, 
                  kernel_initializer='he_normal', dilation_rate=dilation, padding='same')(s)
+      # 2023/06/20
+      if normalization:
+        c = BatchNormalization()(c) 
       c = Dropout(dropout_rate * i)(c)
       c = Conv2D(filters, kernel_size, strides=strides, activation=relu, 
                  kernel_initializer='he_normal', dilation_rate=dilation, padding='same')(c)
@@ -276,7 +305,7 @@ on <b>num_layers</b> defined in <b>model</b> section in that cofiguration file.
         p = MaxPool2D(pool_size=pool_size)(c)
         s = p
       enc.append(c)
-
+    
     enc_len = len(enc)
     enc.reverse()
     n = 0
@@ -284,15 +313,18 @@ on <b>num_layers</b> defined in <b>model</b> section in that cofiguration file.
     
     # --- Decoder
     for i in range(num_layers-1):
-      kernel_size = rkernel_sizes[i] #random.choice(kernel_sizes)
+      kernel_size = rkernel_sizes[i] 
+
       f = enc_len - 2 - i
       filters = base_filters* (2**f)
-      #for kernel_size in reversed(kernel_sizes):
       u = Conv2DTranspose(filters, (2, 2), strides=(2, 2), padding='same')(c)
       n += 1
       u = concatenate([u, enc[n]])
       u = Conv2D(filters, kernel_size, strides=strides, activation=relu, 
                  kernel_initializer='he_normal', dilation_rate=dilation, padding='same')(u)
+      # 2023/06/20
+      if normalization:
+        u = BatchNormalization()(u) 
       u = Dropout(dropout_rate * f)(u)
       u = Conv2D(filters, kernel_size, strides=strides, activation=relu, 
                  kernel_initializer='he_normal', dilation_rate=dilation, padding='same')(u)
@@ -359,20 +391,27 @@ The train method is the following.<br>
     patience   = self.config.get(TRAIN, "patience")
     eval_dir   = self.config.get(TRAIN, "eval_dir")
     model_dir  = self.config.get(TRAIN, "model_dir")
-
-    if os.path.exists(model_dir):
-      shutil.rmtree(model_dir)
-
-    if not os.path.exists(model_dir):
-      os.makedirs(model_dir)
+    metrics    = ["accuracy", "val_accuracy"]
+    try:
+      metrics    = self.config.get(TRAIN, "metrics")
+    except:
+      pass
+    # 2023/06/20
+    self.create_dirs(eval_dir, model_dir)
+  
+    # Copy current config_file to model_dir
+    shutil.copy2(self.config_file, model_dir)
+    print("-- Copied {} to {}".format(self.config_file, model_dir))
+    
     weight_filepath   = os.path.join(model_dir, BEST_MODEL_FILE)
 
     early_stopping = EarlyStopping(patience=patience, verbose=1)
     check_point    = ModelCheckpoint(weight_filepath, verbose=1, save_best_only=True)
-    epoch_change   = EpochChangeCallback(eval_dir)
+    epoch_change   = EpochChangeCallback(eval_dir, metrics)
 
     results = self.model.fit(x_train, y_train, 
                     validation_split=0.2, batch_size=batch_size, epochs=epochs, 
+                    shuffle=False,
                     callbacks=[early_stopping, check_point, epoch_change],
                     verbose=1)
 </pre>
